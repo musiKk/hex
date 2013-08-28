@@ -21,7 +21,7 @@ public class Test {
 		f.setSize(new Dimension(800, 600));
 		f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		f.add(new HexPanel(randomCrap(1024)), BorderLayout.CENTER);
+		f.add(new HexPanel(new ByteArrayDataProvider(randomCrap(1024))), BorderLayout.CENTER);
 
 		f.setVisible(true);
 
