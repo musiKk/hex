@@ -15,6 +15,9 @@ import javax.swing.JPanel;
 import org.apache.commons.lang3.StringUtils;
 
 public class HexPanel extends JPanel {
+		private final Collection<MetricsUpdatedListener> metricsUpdatedListeners
+				= new ArrayList<>();
+
 		private final Font font = new Font(Font.MONOSPACED, Font.PLAIN, 24);
 
 		private static final RangeMarker SELECTION = new SimpleBorderMarker(Color.BLUE);
@@ -180,20 +183,28 @@ public class HexPanel extends JPanel {
 
 			lastWidth = getWidth();
 			lastHeight = getHeight();
+
+			fireMetricsUpdated();
 		}
 
 		private void getData() {
-			bytes = new byte[lineLength * lines];
+			bytes = new byte[(int) Math.min(Math.max(0, data.getLength() - offset), lineLength * lines)];
 			data.get(bytes, offset);
 		}
 
 		public void setOffset(long offset) {
-			if (this.offset == offset) {
+			long newOffset = lineLength * (offset / lineLength);
+			System.err.println("new corrected offset: " + newOffset + " (raw: " + offset + ", line length: " + lineLength + ")");
+			if (this.offset == newOffset) {
 				return;
 			}
-			this.offset = offset;
+			this.offset = newOffset;
 			getData();
 			repaint();
+		}
+
+		public void setLineOffset(long lineOffset) {
+			this.setOffset(lineOffset * lineLength);
 		}
 
 		private class HoverListener extends MouseAdapter {
@@ -240,6 +251,24 @@ public class HexPanel extends JPanel {
 
 		}
 
+		public Metrics getMetrics() {
+			return metrics;
+		}
+
+		public synchronized void addMetricsUpdatedListener(MetricsUpdatedListener l) {
+			metricsUpdatedListeners.add(l);
+		}
+
+		public synchronized void removeMetricsUpdatedListener(MetricsUpdatedListener l) {
+			metricsUpdatedListeners.remove(l);
+		}
+
+		private void fireMetricsUpdated() {
+			for (MetricsUpdatedListener l : metricsUpdatedListeners) {
+				l.metricsUpdated(metrics);
+			}
+		}
+
 		public class Metrics {
 			public int getCharWidth() {
 				return charWidth;
@@ -255,6 +284,18 @@ public class HexPanel extends JPanel {
 			}
 			public int getLineGap() {
 				return lineGap;
+			}
+			public int getLineLength() {
+				return lineLength;
+			}
+			public int getLines() {
+				return lines;
+			}
+			public long getLinesTotal() {
+				if (lineLength == 0) {
+					return -1;
+				}
+				return data.getLength() / lineLength + 1;
 			}
 			public HexPosition coordsFromIndex(long index) {
 				int row = (int) (index / lineLength);
