@@ -8,6 +8,13 @@ import java.awt.event.AdjustmentListener;
 import javax.swing.JPanel;
 import javax.swing.JScrollBar;
 
+/**
+ * Provides a {@link HexPanel} with a scroll bar to the right that allows
+ * scrolling through data that is to big to be shown on a single screen.
+ *
+ * @author Werner Hahn
+ *
+ */
 public class ScrollableHexPanel extends JPanel {
 
 	public ScrollableHexPanel(final DataProvider data) {

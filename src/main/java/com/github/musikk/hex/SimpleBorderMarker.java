@@ -1,11 +1,18 @@
 package com.github.musikk.hex;
 
-
 import java.awt.Color;
 import java.awt.Graphics2D;
 
 import com.github.musikk.hex.HexPanel.Metrics;
 
+/**
+ * Simple {@link RangeMarker} that paints a line based border around the marked
+ * region. This marker is more a proof of concept and not suitable for markings
+ * spanning multiple lines.
+ *
+ * @author Werner Hahn
+ *
+ */
 public class SimpleBorderMarker extends RangeMarker {
 
 	public SimpleBorderMarker(Color color) {

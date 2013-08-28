@@ -3,6 +3,12 @@ package com.github.musikk.hex;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Abstract {@link Marker} that implements listener support.
+ *
+ * @author Werner Hahn
+ *
+ */
 public abstract class AbstractMarker implements Marker {
 
 	private final List<MarkerUpdatedListener> listeners = new ArrayList<>();

@@ -1,10 +1,10 @@
 package com.github.musikk.hex;
 
 /**
- * Contains coordinates of a com.github.musikk.hex character both in absolute coordinates
- * suitable for painting and com.github.musikk.hex coordinates.
+ * Contains coordinates of a hex character both in absolute coordinates suitable
+ * for painting and hex coordinates.
  *
- * @author Werner
+ * @author Werner Hahn
  *
  */
 class HexPosition {
