@@ -1,6 +1,7 @@
 package com.github.musikk.hex;
 
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.MouseAdapter;
@@ -14,19 +15,24 @@ import javax.swing.JPanel;
 import org.apache.commons.lang3.StringUtils;
 
 public class HexPanel extends JPanel {
+		private final Font font = new Font(Font.MONOSPACED, Font.PLAIN, 24);
+
 		private static final RangeMarker SELECTION = new SimpleBorderMarker(Color.BLUE);
 		private static final RangeMarker HOVER = new SimpleBorderMarker(Color.BLACK);
 		private final Metrics metrics;
 
 		private final Collection<Marker> markers = new ArrayList<>();
 
-		private final byte[] bytes;
+		private final DataProvider data;
+		private byte[] bytes;
+		private long offset;
 
 		/**
-		 * Line length in bytes. Multiply by two to get the total number of com.github.musikk.hex
+		 * Line length in bytes. Multiply by two to get the total number of hex
 		 * characters (nibbles).
 		 */
 		private int lineLength;
+		private int lines;
 
 		private int charWidth;
 		private int charHeight;
@@ -42,14 +48,24 @@ public class HexPanel extends JPanel {
 		private int hexAsciiGap;
 		private int asciiX;
 
-		public HexPanel(byte[] bytes) {
+		/*
+		 * Metrics are dependent on width and height. In order not to calculate them
+		 * over and over again, they are put here for caching.
+		 *
+		 * Metrics also depend on the font but the font cannot be changed currently.
+		 */
+		private int lastWidth = -1;
+		private int lastHeight = -1;
+
+		public HexPanel(DataProvider data) {
+
 			HoverListener l = new HoverListener(HOVER, SELECTION);
 			addMouseMotionListener(l);
 			addMouseListener(l);
 			this.markers.add(HOVER);
 			this.markers.add(SELECTION);
 
-			this.bytes = bytes;
+			this.data = data;
 
 			this.metrics = new Metrics();
 
@@ -69,7 +85,11 @@ public class HexPanel extends JPanel {
 			super.paintComponent(g);
 
 			Graphics2D g2 = (Graphics2D) g;
-			g2.setFont(Test.font);
+			g2.setFont(font);
+
+			g2.setColor(Color.WHITE);
+			g2.fillRect(0, 0, getWidth(), getHeight());
+			g2.setColor(Color.BLACK);
 
 			calculateMetrics(g2);
 
@@ -132,6 +152,9 @@ public class HexPanel extends JPanel {
 		}
 
 		private void calculateMetrics(Graphics2D g2) {
+			if (getWidth() == lastWidth && getHeight() == lastHeight) {
+				return;
+			}
 			charWidth = g2.getFontMetrics().stringWidth("A");
 			charHeight = g2.getFontMetrics().getAscent();
 //			charHeight = font.createGlyphVector(g2.getFontRenderContext(), "A").getPixelBounds(g2.getFontRenderContext(), 0, 0).height;
@@ -146,11 +169,31 @@ public class HexPanel extends JPanel {
 			hexX = addressWidth + addressHexGap;
 
 			lineLength = ((getWidth() - (hexX + hexAsciiGap)) / ((6 * charWidth) + twoByteGap)) * 2;
+			lines = getHeight() / (charHeight + lineGap);
 
 			hexWidth = lineLength * 2 * charWidth + ((lineLength / 2 - 1) * twoByteGap);
 			// TODO calculate hexHeight once we know how :)
 
 			asciiX = hexX + hexWidth + hexAsciiGap;
+
+			getData();
+
+			lastWidth = getWidth();
+			lastHeight = getHeight();
+		}
+
+		private void getData() {
+			bytes = new byte[lineLength * lines];
+			data.get(bytes, offset);
+		}
+
+		public void setOffset(long offset) {
+			if (this.offset == offset) {
+				return;
+			}
+			this.offset = offset;
+			getData();
+			repaint();
 		}
 
 		private class HoverListener extends MouseAdapter {
