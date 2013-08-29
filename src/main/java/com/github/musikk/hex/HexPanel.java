@@ -285,7 +285,6 @@ public class HexPanel extends JPanel {
 	 */
 	public void setOffset(long offset) {
 		long newOffset = lineLength * (offset / lineLength);
-		System.err.println("new corrected offset: " + newOffset + " (raw: " + offset + ", line length: " + lineLength + ")");
 		if (this.offset == newOffset) {
 			return;
 		}
