@@ -20,17 +20,14 @@ public class SimpleBorderMarker extends RangeMarker {
 	}
 
 	@Override
-	public void paint(Graphics2D g2, Metrics metrics) {
-		if (isInvalid()) {
-			return;
-		}
-//		g2.setColor(getColor());
+	public void paintRangeMarker(Graphics2D g2, Metrics metrics) {
+		g2.setColor(getColor());
 
 		int charHeight = metrics.getCharHeight();
 		int charWidth = metrics.getCharWidth();
 		int hexX = metrics.getHexX();
 		int hexWidth = metrics.getHexWidth();
-		int pad = 0;
+		int pad = metrics.getLineGap() / 2;
 
 		HexPosition startPoint;
 		HexPosition endPoint;
@@ -42,8 +39,19 @@ public class SimpleBorderMarker extends RangeMarker {
 			endPoint = metrics.coordsFromIndex(getByteStart());
 		}
 
+		boolean openStart = false;
+		boolean openEnd = false;
+		if (startPoint == null) {
+			startPoint = new HexPosition(hexX, metrics.getHexY(), 0, 0);
+			openStart = true;
+		}
+		if (endPoint == null) {
+			endPoint = new HexPosition(hexX + hexWidth - 2 * charWidth, (charHeight + metrics.getLineGap()) * metrics.getLines(), metrics.getLineLength(), metrics.getLines());
+			openEnd = true;
+		}
+
 		if (startPoint.row == endPoint.row) {
-			g2.drawRect(startPoint.x, startPoint.y - charHeight - pad/2, endPoint.x - startPoint.x + 2 * charWidth, charHeight + pad);
+			g2.drawRect(startPoint.x, startPoint.y - charHeight - pad, endPoint.x - startPoint.x + 2 * charWidth, charHeight + 2 * pad);
 		} else {
 			int xLeft = startPoint.x;
 			int xRight = hexX + hexWidth;
@@ -52,14 +60,16 @@ public class SimpleBorderMarker extends RangeMarker {
 
 			// [
 			g2.drawLine(xLeft, yLow, xRight, yLow); // low
-			g2.drawLine(xLeft, yLow, xLeft, yHigh); // left
+			if (!openStart) {
+				g2.drawLine(xLeft, yLow, xLeft, yHigh); // left
+			}
 			g2.drawLine(xLeft, yHigh, xRight, yHigh); // high
 
 			int row = startPoint.row + 2;
-			int y = row * charHeight + ((row - 1) * metrics.getLineGap());
+			int y = row * (charHeight + metrics.getLineGap());
 			for (; row <= endPoint.row; row++) {
-				g2.drawLine(hexX, y, hexX + hexWidth, y); // low
-				g2.drawLine(hexX, y - charHeight, hexX + hexWidth, y - charHeight); // high
+				g2.drawLine(hexX, y + pad, hexX + hexWidth, y + pad); // low
+				g2.drawLine(hexX, y - charHeight - pad, hexX + hexWidth, y - charHeight - pad); // high
 
 				y += metrics.getLineGap() + charHeight;
 			}
@@ -71,7 +81,9 @@ public class SimpleBorderMarker extends RangeMarker {
 
 			// ]
 			g2.drawLine(xRight, yLow, xLeft, yLow); // low
-			g2.drawLine(xRight, yLow, xRight, yHigh); // right
+			if (!openEnd) {
+				g2.drawLine(xRight, yLow, xRight, yHigh); // right
+			}
 			g2.drawLine(xRight, yHigh, xLeft, yHigh); // high
 		}
 

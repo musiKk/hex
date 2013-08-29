@@ -6,6 +6,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.font.FontRenderContext;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -111,6 +112,13 @@ public class HexPanel extends JPanel {
 	 */
 	private int hexX;
 	/**
+	 * The y-coordinate for the first line of characters. The name may suggest
+	 * that this is solely for the hex column but since addresses, hex
+	 * characters and ASCII characters are aligned vertically, the value can be
+	 * used for laying out those characters as well.
+	 */
+	private int hexY;
+	/**
 	 * The width of the hex column in pixels.
 	 */
 	private int hexWidth/*, hexHeight*/;
@@ -168,7 +176,7 @@ public class HexPanel extends JPanel {
 	protected void paintComponent(Graphics g) {
 		super.paintComponent(g);
 
-		Graphics2D g2 = (Graphics2D) g;
+		Graphics2D g2 = (Graphics2D) g.create();
 		g2.setFont(font);
 
 		g2.setColor(Color.WHITE);
@@ -188,7 +196,7 @@ public class HexPanel extends JPanel {
 	}
 
 	private void drawMarker(Graphics2D g2, Marker marker) {
-		marker.paint(g2, metrics);
+		marker.paint((Graphics2D) g2.create(), metrics);
 	}
 
 	private void drawHexLetters(Graphics2D g2) {
@@ -196,7 +204,7 @@ public class HexPanel extends JPanel {
 		int asciiXBase = this.asciiX;
 		int x = xBase;
 		int asciiX = asciiXBase;
-		int y = charHeight;
+		int y = hexY;
 		int nibble = 0;
 		for (int i = 0; i < bytes.length; i++) {
 			byte b = bytes[i];
@@ -240,9 +248,8 @@ public class HexPanel extends JPanel {
 			return;
 		}
 		charWidth = g2.getFontMetrics().stringWidth("A");
-		charHeight = g2.getFontMetrics().getAscent();
-//			charHeight = font.createGlyphVector(g2.getFontRenderContext(), "A").getPixelBounds(g2.getFontRenderContext(), 0, 0).height;
-		lineGap = 3;
+		charHeight = getHexCharHeight(g2, font);
+		lineGap = (int) (.5 * charHeight);
 
 		twoByteGap = charWidth / 2;
 		addressHexGap = 2 * charWidth;
@@ -252,6 +259,7 @@ public class HexPanel extends JPanel {
 		hexAsciiGap = 2 * charWidth;
 
 		hexX = addressWidth + addressHexGap;
+		hexY = charHeight + lineGap;
 
 		lineLength = ((getWidth() - (hexX + hexAsciiGap)) / ((6 * charWidth) + twoByteGap)) * 2;
 		lines = getHeight() / (charHeight + lineGap);
@@ -267,6 +275,17 @@ public class HexPanel extends JPanel {
 		lastHeight = getHeight();
 
 		fireMetricsUpdated();
+	}
+
+	private static int getHexCharHeight(Graphics2D g2, Font font) {
+		FontRenderContext frc = g2.getFontRenderContext();
+		int height = 0;
+		for (char c : "0123456789ABCDEF".toCharArray()) {
+			height = Math.max(
+					height,
+					font.createGlyphVector(frc, new char[] { c }).getPixelBounds(frc, 0, 0).height);
+		}
+		return height;
 	}
 
 	private void getData() {
@@ -391,6 +410,9 @@ public class HexPanel extends JPanel {
 		public int getHexX() {
 			return hexX;
 		}
+		public int getHexY() {
+			return hexY;
+		}
 		public int getHexWidth() {
 			return hexWidth;
 		}
@@ -409,19 +431,40 @@ public class HexPanel extends JPanel {
 			}
 			return data.getLength() / lineLength + 1;
 		}
+		public long getOffset() {
+			return offset;
+		}
+
+		/**
+		 * Returns the {@link HexPosition} of the byte at the specified index.
+		 *
+		 * @param index
+		 * @return the {@code HexPosition} of the specified byte
+		 * @throws IllegalArgumentException
+		 *             if {@code index} does not point at a valid location in
+		 *             the data ({@code index < 0 || index > data.getLength()})
+		 */
 		public HexPosition coordsFromIndex(long index) {
-			int row = (int) (index / lineLength);
-			int column = (int) (index % lineLength);
+			if (index > data.getLength() || index < 0) {
+				throw new IllegalArgumentException("index " + index + " is greater than data size " + data.getLength());
+			}
+			if (index < offset || index > offset + lineLength * lines) {
+				// index not visible from current offset
+				return null;
+			}
+			long relativeIndex = index - offset;
+			int row = (int) (relativeIndex / lineLength);
+			int column = (int) (relativeIndex % lineLength);
 
 			int x = column * 2 * charWidth + hexX + (column / 2) * twoByteGap;
-			int y = (row + 1) * charHeight + row * lineGap;
+			int y = (row + 1) * (charHeight + lineGap);
 
 			return new HexPosition(x, y, column, row);
 		}
 
 		/**
-		 * Returns the index of the byte that is at coordinates {@code x}
-		 * and {@code y}.
+		 * Returns the index of the byte that is at coordinates {@code x} and
+		 * {@code y}.
 		 *
 		 * @param x
 		 * @param y
@@ -443,7 +486,7 @@ public class HexPanel extends JPanel {
 			int byteCol = twoByteBlockHoveredByte + 2 * twoByteBlock;
 			int row = y / (charHeight + lineGap);
 
-			return byteCol + row * lineLength;
+			return byteCol + row * lineLength + offset;
 		}
 	}
 

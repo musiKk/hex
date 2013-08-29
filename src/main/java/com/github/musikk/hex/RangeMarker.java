@@ -1,6 +1,9 @@
 package com.github.musikk.hex;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
+
+import com.github.musikk.hex.HexPanel.Metrics;
 
 /**
  * {@link Marker} implementation that provides support for a range of bytes in a
@@ -164,4 +167,28 @@ public abstract class RangeMarker extends AbstractMarker {
 	public boolean isInvalid() {
 		return byteStart == -1 && byteEnd == -1;
 	}
+
+	@Override
+	public final void paint(Graphics2D g2, Metrics metrics) {
+		if (isInvalid()) {
+			return;
+		}
+		long first = metrics.getOffset();
+		long last = first + metrics.getLines() * metrics.getLineLength();
+
+		long rangeStart = getByteStart();
+		long rangeEnd = getByteEnd();
+		if (rangeStart > rangeEnd) {
+			long h = rangeStart;
+			rangeStart = rangeEnd;
+			rangeEnd = h;
+		}
+		if (rangeEnd < first || rangeStart > last) {
+			return;
+		}
+		paintRangeMarker(g2, metrics);
+	}
+
+	protected abstract void paintRangeMarker(Graphics2D g2, Metrics metrics);
+
 }
