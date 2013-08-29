@@ -91,6 +91,10 @@ public class HexPanel extends JPanel {
 	 */
 	private int addressWidth;
 	/**
+	 * The length of an address in characters.
+	 */
+	private int addressLength;
+	/**
 	 * The gap between the address column and the hex column in pixels.
 	 */
 	private int addressHexGap;
@@ -212,7 +216,7 @@ public class HexPanel extends JPanel {
 			asciiX += charWidth;
 
 			if ((i + 1) % lineLength == 0) {
-				g2.drawString(StringUtils.leftPad(Integer.toHexString((i + 1) - lineLength), 4, '0'), 0, y);
+				g2.drawString(StringUtils.leftPad(Long.toHexString((offset + i + 1) - lineLength), addressLength, '0'), 0, y);
 
 				x = xBase;
 				asciiX = asciiXBase;
@@ -242,7 +246,8 @@ public class HexPanel extends JPanel {
 
 		twoByteGap = charWidth / 2;
 		addressHexGap = 2 * charWidth;
-		addressWidth = 4 * charWidth;
+		addressLength = (int) Math.log10(data.getLength()) + 1;
+		addressWidth = addressLength * charWidth;
 
 		hexAsciiGap = 2 * charWidth;
 
