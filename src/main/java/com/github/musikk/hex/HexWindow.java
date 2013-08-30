@@ -1,6 +1,7 @@
 package com.github.musikk.hex;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Event;
 import java.awt.event.ActionEvent;
@@ -33,7 +34,6 @@ public class HexWindow extends JFrame {
 		tabbedPane.addChangeListener(new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent e) {
-				System.err.println("selected component: " + tabbedPane.getSelectedComponent());
 				setTitle("hex - " + tabFileMapping.get(tabbedPane.getSelectedComponent()).getAbsolutePath());
 			}
 		});
@@ -47,6 +47,12 @@ public class HexWindow extends JFrame {
 
 		add(tabbedPane, BorderLayout.CENTER);
 
+		addMenu();
+
+		setGlobalShortcuts();
+	}
+
+	private void addMenu() {
 		JMenuBar menuBar = new JMenuBar();
 		JMenu fileMenu = new JMenu("File");
 		fileMenu.setMnemonic('f');
@@ -57,6 +63,11 @@ public class HexWindow extends JFrame {
 		fileMenu.addSeparator();
 		fileMenu.add(new JMenuItem(new QuitAction()));
 
+		menuBar.add(fileMenu);
+		add(menuBar, BorderLayout.NORTH);
+	}
+
+	private void setGlobalShortcuts() {
 		InputMap rootInputMap = getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
 		ActionMap rootActionMap = getRootPane().getActionMap();
 
@@ -68,15 +79,14 @@ public class HexWindow extends JFrame {
 
 		rootInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_UP, Event.CTRL_MASK), "CYCLE_LEFT");
 		rootActionMap.put("CYCLE_LEFT", new CycleTabAction(false));
-
-		menuBar.add(fileMenu);
-
-		add(menuBar, BorderLayout.NORTH);
 	}
 
 	private void addNewTab(File file) {
 		try {
 			ScrollableHexPanel hexPanel = new ScrollableHexPanel(new FileDataProvider(file));
+			hexPanel.setHoverMarker(new SimpleBorderMarker(Color.BLACK));
+			hexPanel.setSelectionMarker(new SimpleBorderMarker(Color.BLUE));
+
 			tabFileMapping.put(hexPanel, file);
 			tabbedPane.addTab(file.getName(), hexPanel);
 		} catch (IOException e) {
@@ -157,10 +167,6 @@ public class HexWindow extends JFrame {
 			int newIndex = tabbedPane.getSelectedIndex() + (cycleRight ? 1 : -1);
 			tabbedPane.setSelectedIndex((newIndex + tabbedPane.getTabCount() % tabbedPane.getTabCount()) - 1);
 		}
-	}
-
-	public enum CycleDirection {
-		LEFT, RIGHT
 	}
 
 	public static void main(String[] args) throws Exception {

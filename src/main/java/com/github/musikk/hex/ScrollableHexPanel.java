@@ -21,10 +21,25 @@ public class ScrollableHexPanel extends JPanel {
 
 	private static final int MAX_TICKS = 1000;
 
+	private final HexPanel hexPanel;
+
+	/**
+	 * The {@link Marker} that highlights the currently hovered byte.
+	 */
+	private RangeMarker hoverMarker;
+
+	/**
+	 * The {@link Marker} that shows the current selection. A selection is
+	 * created by a standard dragging operation.
+	 */
+	private RangeMarker selectionMarker;
+
 	public ScrollableHexPanel(final DataProvider data) {
 		this.setLayout(new BorderLayout());
 
-		final HexPanel hexPanel = new HexPanel(data);
+		hexPanel = new HexPanel(data);
+		hexPanel.addHexSelectionListener(new HexHoverListener());
+		hexPanel.addHexSelectionListener(new HexMarkingListener());
 		this.add(hexPanel, BorderLayout.CENTER);
 
 		final JScrollBar scrollbar = new JScrollBar(JScrollBar.VERTICAL);
@@ -60,6 +75,80 @@ public class ScrollableHexPanel extends JPanel {
 		});
 
 		this.add(scrollbar, BorderLayout.EAST);
+	}
+
+	/**
+	 * Removes the old hover marker (if any) and sets the new marker (if any).
+	 * The new marker is set to {@linkplain RangeMarker#setSingleByte(boolean)
+	 * single byte mode}.
+	 *
+	 * @param marker
+	 */
+	public void setHoverMarker(RangeMarker marker) {
+		marker.setSingleByte(true);
+		replaceMarker(hoverMarker, marker);
+		hoverMarker = marker;
+	}
+
+	/**
+	 * Removes the old selection marker (if any) and sets the new marker (if
+	 * any).
+	 *
+	 * @param marker
+	 */
+	public void setSelectionMarker(RangeMarker marker) {
+		replaceMarker(selectionMarker, marker);
+		selectionMarker = marker;
+	}
+
+	private void replaceMarker(RangeMarker oldMarker, RangeMarker newMarker) {
+		if (oldMarker != null) {
+			oldMarker.invalidate();
+			hexPanel.removeMarker(oldMarker);
+		}
+		if (newMarker != null) {
+			newMarker.invalidate();
+			hexPanel.addMarker(newMarker);
+		}
+	}
+
+	private class HexHoverListener extends HexSelectionAdapter {
+		@Override
+		public void onHover(HexSelectionEvent e) {
+			if (hoverMarker == null) {
+				return;
+			}
+			hoverMarker.setByteStart(e.index);
+			hexPanel.repaint();
+		}
+	}
+
+	private class HexMarkingListener extends HexSelectionAdapter {
+		private boolean dragging;
+		@Override
+		public void onDrag(HexSelectionEvent e) {
+			if (!dragging) {
+				// drag starts
+				if (selectionMarker != null) {
+					selectionMarker.setByteStartEnd(e.index, e.index);
+				}
+				if (hoverMarker != null) {
+					hoverMarker.invalidate();
+				}
+			} else {
+				if (selectionMarker != null) {
+					selectionMarker.setByteEnd(e.index);
+				}
+			}
+			dragging = e.stillDragging;
+		}
+		@Override
+		public void onClick(HexSelectionEvent e) {
+			if (selectionMarker == null) {
+				return;
+			}
+			selectionMarker.invalidate();
+		}
 	}
 
 }

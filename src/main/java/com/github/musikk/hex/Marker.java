@@ -16,6 +16,9 @@ public interface Marker {
 	 * is drawn before the hex characters are drawn, so if marker and character
 	 * overlap, the latter may obscure the former.
 	 *
+	 * The marker may change the state of the supplied {@code Graphics2D}
+	 * object.
+	 *
 	 * @param g2
 	 *            the graphics object onto which the marker may draw itself
 	 * @param metrics

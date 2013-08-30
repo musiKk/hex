@@ -29,15 +29,6 @@ public class HexPanel extends JPanel {
 	private final Font font = new Font(Font.MONOSPACED, Font.PLAIN, 24);
 
 	/**
-	 * The {@link Marker} that shows the current selection. A selection is
-	 * created by a standard dragging operation.
-	 */
-	private final RangeMarker SELECTION = new SimpleBorderMarker(Color.BLUE);
-	/**
-	 * The {@link Marker} that highlights the currently hovered byte.
-	 */
-	private final RangeMarker HOVER = new SimpleBorderMarker(Color.BLACK);
-	/**
 	 * The {@link Metrics} object that is used to export layout data for this
 	 * {@code HexPanel}.
 	 */
@@ -142,6 +133,8 @@ public class HexPanel extends JPanel {
 	private int lastWidth = -1;
 	private int lastHeight = -1;
 
+	private final MarkerUpdatedListener markerUpdatedListener;
+
 	/**
 	 * Creates a new {@code HexPanel} that displays the specified {@code data}.
 	 * The offset is initially zero.
@@ -150,19 +143,11 @@ public class HexPanel extends JPanel {
 	 *            the data that is to be shown
 	 */
 	public HexPanel(DataProvider data) {
-
-		HoverListener l = new HoverListener(HOVER, SELECTION);
-		addMouseMotionListener(l);
-		addMouseListener(l);
-		this.markers.add(HOVER);
-		this.markers.add(SELECTION);
-
 		this.data = data;
 
 		this.metrics = new Metrics();
 
-		HOVER.setSingleByte(true);
-		MarkerUpdatedListener mul = new MarkerUpdatedListener() {
+		markerUpdatedListener = new MarkerUpdatedListener() {
 			@Override
 			public void markerUpdated(Marker marker) {
 				HexPanel.this.repaint();
@@ -172,8 +157,6 @@ public class HexPanel extends JPanel {
 		HexSelectionUpdaterListener hsul = new HexSelectionUpdaterListener();
 		addMouseMotionListener(hsul);
 		addMouseListener(hsul);
-		HOVER.addListener(mul);
-		SELECTION.addListener(mul);
 	}
 
 	@Override
@@ -325,50 +308,6 @@ public class HexPanel extends JPanel {
 	 */
 	public void setLineOffset(long lineOffset) {
 		this.setOffset(lineOffset * lineLength);
-	}
-
-	private class HoverListener extends MouseAdapter {
-		private boolean dragging;
-		private final RangeMarker hoverMarker;
-		private final RangeMarker selectionMarker;
-
-		public HoverListener(RangeMarker hoverMarker, RangeMarker selectionMarker) {
-			this.hoverMarker = hoverMarker;
-			this.selectionMarker = selectionMarker;
-		}
-
-		@Override
-		public void mouseDragged(MouseEvent e) {
-			if (!dragging) {
-				dragging = true;
-				long markStart = metrics.getByteAtPosition(e.getX(), e.getY());
-				selectionMarker.setByteStart(markStart);
-				selectionMarker.setByteEnd(markStart);
-
-				hoverMarker.invalidate();
-			} else {
-				long newMarkEnd = metrics.getByteAtPosition(e.getX(), e.getY());
-				if (newMarkEnd != -1) {
-					selectionMarker.setByteEnd(newMarkEnd);
-				}
-			}
-			HexPanel.this.repaint();
-		}
-		@Override
-		public void mouseReleased(MouseEvent e) {
-			if (dragging) {
-				dragging = false;
-			} else {
-				selectionMarker.invalidate();
-			}
-			HexPanel.this.repaint();
-		}
-		@Override
-		public void mouseMoved(MouseEvent e) {
-			long newByte = metrics.getByteAtPosition(e.getX(), e.getY());
-			hoverMarker.setByteStart(newByte);
-		}
-
 	}
 
 	/**
