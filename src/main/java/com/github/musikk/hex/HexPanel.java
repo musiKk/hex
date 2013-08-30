@@ -23,8 +23,8 @@ import org.apache.commons.lang3.StringUtils;
  *
  */
 public class HexPanel extends JPanel {
-	private final Collection<MetricsUpdatedListener> metricsUpdatedListeners
-			= new ArrayList<>();
+	private final Collection<MetricsUpdatedListener> metricsUpdatedListeners = new ArrayList<>();
+	private final Collection<HexSelectionListener> hexSelectionListeners = new ArrayList<>();
 
 	private final Font font = new Font(Font.MONOSPACED, Font.PLAIN, 24);
 
@@ -168,6 +168,10 @@ public class HexPanel extends JPanel {
 				HexPanel.this.repaint();
 			}
 		};
+
+		HexSelectionUpdaterListener hsul = new HexSelectionUpdaterListener();
+		addMouseMotionListener(hsul);
+		addMouseListener(hsul);
 		HOVER.addListener(mul);
 		SELECTION.addListener(mul);
 	}
@@ -386,9 +390,35 @@ public class HexPanel extends JPanel {
 		metricsUpdatedListeners.remove(l);
 	}
 
-	private void fireMetricsUpdated() {
+	private synchronized void fireMetricsUpdated() {
 		for (MetricsUpdatedListener l : metricsUpdatedListeners) {
 			l.metricsUpdated(metrics);
+		}
+	}
+
+	public synchronized void addHexSelectionListener(HexSelectionListener l) {
+		hexSelectionListeners.add(l);
+	}
+
+	public synchronized void removeHexSelectionListener(HexSelectionListener l) {
+		hexSelectionListeners.remove(l);
+	}
+
+	private synchronized void fireByteClicked(HexSelectionListener.HexSelectionEvent e) {
+		for (HexSelectionListener l : hexSelectionListeners) {
+			l.onClick(e);
+		}
+	}
+
+	private synchronized void fireByteHovered(HexSelectionListener.HexSelectionEvent e) {
+		for (HexSelectionListener l : hexSelectionListeners) {
+			l.onHover(e);
+		}
+	}
+
+	private synchronized void fireDrag(HexSelectionListener.HexSelectionEvent e) {
+		for (HexSelectionListener l : hexSelectionListeners) {
+			l.onDrag(e);
 		}
 	}
 
@@ -494,6 +524,50 @@ public class HexPanel extends JPanel {
 			int byteCol = twoByteBlockHoveredByte + 2 * twoByteBlock;
 
 			return byteCol + row * lineLength + offset;
+		}
+	}
+
+	public void addMarker(Marker marker) {
+		marker.addListener(markerUpdatedListener);
+		markers.add(marker);
+		repaint();
+	}
+
+	public void removeMarker(Marker marker) {
+		marker.removeListener(markerUpdatedListener);
+		markers.remove(marker);
+	}
+
+	private class HexSelectionUpdaterListener extends MouseAdapter {
+		private boolean dragging;
+
+		@Override
+		public void mouseClicked(MouseEvent e) {
+			fireByteClicked(makeEvent(e.getX(), e.getY(), false));
+		}
+
+		@Override
+		public void mouseDragged(MouseEvent e) {
+			dragging = true;
+			fireDrag(makeEvent(e.getX(), e.getY(), true));
+		}
+
+		@Override
+		public void mouseReleased(MouseEvent e) {
+			if (!dragging) {
+				return;
+			}
+			dragging = false;
+			fireDrag(makeEvent(e.getX(), e.getY(), false));
+		}
+
+		@Override
+		public void mouseMoved(MouseEvent e) {
+			fireByteHovered(makeEvent(e.getX(), e.getY(), false));
+		}
+
+		private HexSelectionListener.HexSelectionEvent makeEvent(int x, int y, boolean stillDragging) {
+			return new HexSelectionListener.HexSelectionEvent(getMetrics().getByteAtPosition(x, y), stillDragging, x, y);
 		}
 	}
 
