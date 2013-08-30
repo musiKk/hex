@@ -471,20 +471,27 @@ public class HexPanel extends JPanel {
 		 * @return the index or -1 if no byte is at this position
 		 */
 		public long getByteAtPosition(int x, int y) {
-			if (!(x >= hexX && x <= hexX + hexWidth)) {
+			if (!(x >= hexX && x < hexX + hexWidth)) {
 				return -1;
 			}
+			int row = y / (charHeight + lineGap);
+
 			int xNormalized = x - hexX;
 			int twoByteBlock = xNormalized / (4 * charWidth + twoByteGap);
 			int xTwoByte = xNormalized - twoByteBlock * (4 * charWidth + twoByteGap);
-			if (xTwoByte > 4 * charWidth) {
-				return -1;
+			if (xTwoByte >= 4 * charWidth) {
+				/*
+				 * Out of block bounds. We just add two to the current block and
+				 * thus select the next byte. Have to see whether this feels
+				 * right. The alternative is to use the previous byte or, as
+				 * previously, none at all.
+				 */
+				return 2 + 2 * twoByteBlock + row * lineLength + offset;
 			}
 
 			int twoByteBlockHoveredByte = xTwoByte / (2 * charWidth);
 
 			int byteCol = twoByteBlockHoveredByte + 2 * twoByteBlock;
-			int row = y / (charHeight + lineGap);
 
 			return byteCol + row * lineLength + offset;
 		}
