@@ -32,26 +32,31 @@ public class SimpleBorderMarker extends RangeMarker {
 		HexPosition startPoint;
 		HexPosition endPoint;
 		if (getByteStart() <= getByteEnd()) {
-			startPoint = metrics.coordsFromIndex(getByteStart());
-			endPoint = metrics.coordsFromIndex(getByteEnd());
+			startPoint = metrics.positionFromIndex(getByteStart());
+			endPoint = metrics.positionFromIndex(getByteEnd());
 		} else {
-			startPoint = metrics.coordsFromIndex(getByteEnd());
-			endPoint = metrics.coordsFromIndex(getByteStart());
+			startPoint = metrics.positionFromIndex(getByteEnd());
+			endPoint = metrics.positionFromIndex(getByteStart());
 		}
 
 		boolean openStart = false;
 		boolean openEnd = false;
 		if (startPoint == null) {
-			startPoint = new HexPosition(hexX, metrics.getHexY(), 0, 0);
+			// index and rowTotal are invalid but we don't need them here
+			startPoint = new HexPosition(-1, hexX, metrics.getHexY(), 0, 0, -1);
 			openStart = true;
 		}
 		if (endPoint == null) {
-			endPoint = new HexPosition(hexX + hexWidth - 2 * charWidth, (charHeight + metrics.getLineGap()) * metrics.getLines(), metrics.getLineLength(), metrics.getLines());
+			// index and rowTotal are invalid but we don't need them here
+			endPoint = new HexPosition(-1, hexX + hexWidth - 2 * charWidth,
+					(charHeight + metrics.getLineGap()) * metrics.getLines(),
+					metrics.getLineLength(), metrics.getLines(), -1);
 			openEnd = true;
 		}
 
 		if (startPoint.row == endPoint.row) {
-			g2.drawRect(startPoint.x, startPoint.y - charHeight - pad, endPoint.x - startPoint.x + 2 * charWidth, charHeight + 2 * pad);
+			g2.drawRect(startPoint.x, startPoint.y - charHeight - pad,
+					endPoint.x - startPoint.x + 2 * charWidth, charHeight + 2 * pad);
 		} else {
 			int xLeft = startPoint.x;
 			int xRight = hexX + hexWidth;

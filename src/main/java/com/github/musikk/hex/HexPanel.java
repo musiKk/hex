@@ -15,6 +15,8 @@ import javax.swing.JPanel;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.github.musikk.hex.HexSelectionListener.HexSelectionEvent;
+
 /**
  * A panel that displays binary data byte-wise in hexadecimal and character form
  * side by side. It allows selecting text and setting markers.
@@ -252,7 +254,6 @@ public class HexPanel extends JPanel {
 		lines = getHeight() / (charHeight + lineGap);
 
 		hexWidth = lineLength * 2 * charWidth + ((lineLength / 2 - 1) * twoByteGap);
-		// TODO calculate hexHeight once we know how :)
 
 		asciiX = hexX + hexWidth + hexAsciiGap;
 
@@ -413,7 +414,7 @@ public class HexPanel extends JPanel {
 		 *             if {@code index} does not point at a valid location in
 		 *             the data ({@code index < 0 || index > data.getLength()})
 		 */
-		public HexPosition coordsFromIndex(long index) {
+		public HexPosition positionFromIndex(long index) {
 			if (index > data.getLength() || index < 0) {
 				throw new IllegalArgumentException("index " + index + " is greater than data size " + data.getLength());
 			}
@@ -428,41 +429,47 @@ public class HexPanel extends JPanel {
 			int x = column * 2 * charWidth + hexX + (column / 2) * twoByteGap;
 			int y = (row + 1) * (charHeight + lineGap);
 
-			return new HexPosition(x, y, column, row);
+			return new HexPosition(index, x, y, column, row, index / lineLength);
 		}
 
 		/**
-		 * Returns the index of the byte that is at coordinates {@code x} and
-		 * {@code y}.
+		 * Returns the {@link HexPosition} of the byte that is at coordinates
+		 * {@code x} and {@code y}. The coordinates are absolute in the
+		 * {@link HexPanel} that belongs to this {@code Metrics} instance.
 		 *
 		 * @param x
 		 * @param y
-		 * @return the index or -1 if no byte is at this position
+		 * @return the position or {@code null} if no byte is at these
+		 *         coordinates
 		 */
-		public long getByteAtPosition(int x, int y) {
+		public HexPosition positionFromCoordinates(int x, int y) {
 			if (!(x >= hexX && x < hexX + hexWidth)) {
-				return -1;
+				return null;
 			}
 			int row = y / (charHeight + lineGap);
 
 			int xNormalized = x - hexX;
 			int twoByteBlock = xNormalized / (4 * charWidth + twoByteGap);
 			int xTwoByte = xNormalized - twoByteBlock * (4 * charWidth + twoByteGap);
-			if (xTwoByte >= 4 * charWidth) {
+
+			int byteCol;
+			if (xTwoByte < 4 * charWidth) {
+				int twoByteBlockHoveredByte = xTwoByte / (2 * charWidth);
+				byteCol = twoByteBlockHoveredByte + 2 * twoByteBlock;
+			} else {
 				/*
-				 * Out of block bounds. We just add two to the current block and
-				 * thus select the next byte. Have to see whether this feels
-				 * right. The alternative is to use the previous byte or, as
-				 * previously, none at all.
+				 * Out of block bounds. We just select the first byte of the
+				 * next block. Have to see whether this feels right. The
+				 * alternative is to use the previous byte or, as previously,
+				 * none at all.
 				 */
-				return 2 + 2 * twoByteBlock + row * lineLength + offset;
+				twoByteBlock++;
+				byteCol = 2 * twoByteBlock;
 			}
-
-			int twoByteBlockHoveredByte = xTwoByte / (2 * charWidth);
-
-			int byteCol = twoByteBlockHoveredByte + 2 * twoByteBlock;
-
-			return byteCol + row * lineLength + offset;
+			long index = row * lineLength + byteCol + offset;
+			int charX = twoByteBlock * (4 * charWidth + twoByteGap) + (byteCol % 2) * 2 * charWidth;
+			int charY = row * (charHeight + lineGap);
+			return new HexPosition(index, charX, charY, byteCol, row, index / lineLength);
 		}
 	}
 
@@ -482,13 +489,19 @@ public class HexPanel extends JPanel {
 
 		@Override
 		public void mouseClicked(MouseEvent e) {
-			fireByteClicked(makeEvent(e.getX(), e.getY(), false));
+			HexSelectionEvent event = makeEvent(e.getX(), e.getY(), false);
+			if (event.position != null) {
+				fireByteClicked(event);
+			}
 		}
 
 		@Override
 		public void mouseDragged(MouseEvent e) {
 			dragging = true;
-			fireDrag(makeEvent(e.getX(), e.getY(), true));
+			HexSelectionEvent event = makeEvent(e.getX(), e.getY(), true);
+			if (event.position != null) {
+				fireDrag(event);
+			}
 		}
 
 		@Override
@@ -502,11 +515,15 @@ public class HexPanel extends JPanel {
 
 		@Override
 		public void mouseMoved(MouseEvent e) {
-			fireByteHovered(makeEvent(e.getX(), e.getY(), false));
+			HexSelectionEvent event = makeEvent(e.getX(), e.getY(), false);
+			if (event.position != null) {
+				fireByteHovered(event);
+			}
 		}
 
 		private HexSelectionListener.HexSelectionEvent makeEvent(int x, int y, boolean stillDragging) {
-			return new HexSelectionListener.HexSelectionEvent(getMetrics().getByteAtPosition(x, y), stillDragging, x, y);
+			HexPosition p = getMetrics().positionFromCoordinates(x, y);
+			return new HexSelectionListener.HexSelectionEvent(p, stillDragging);
 		}
 	}
 

@@ -118,7 +118,7 @@ public class ScrollableHexPanel extends JPanel {
 			if (hoverMarker == null) {
 				return;
 			}
-			hoverMarker.setByteStart(e.index);
+			hoverMarker.setByteStart(e.position.index);
 			hexPanel.repaint();
 		}
 	}
@@ -130,14 +130,14 @@ public class ScrollableHexPanel extends JPanel {
 			if (!dragging) {
 				// drag starts
 				if (selectionMarker != null) {
-					selectionMarker.setByteStartEnd(e.index, e.index);
+					selectionMarker.setByteStartEnd(e.position.index, e.position.index);
 				}
 				if (hoverMarker != null) {
 					hoverMarker.invalidate();
 				}
 			} else {
 				if (selectionMarker != null) {
-					selectionMarker.setByteEnd(e.index);
+					selectionMarker.setByteEnd(e.position.index);
 				}
 			}
 			dragging = e.stillDragging;

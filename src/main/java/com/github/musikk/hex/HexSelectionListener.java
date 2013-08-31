@@ -9,20 +9,16 @@ public interface HexSelectionListener {
 	void onDrag(HexSelectionEvent e);
 
 	public class HexSelectionEvent {
-		public final long index;
 		public final boolean stillDragging;
-		public final int x;
-		public final int y;
+		public final HexPosition position;
 
-		public HexSelectionEvent(long index, int x, int y) {
-			this(index, false, x, y);
+		public HexSelectionEvent(HexPosition position) {
+			this(position, false);
 		}
 
-		public HexSelectionEvent(long index, boolean stillDragging, int x, int y) {
-			this.index = index;
+		public HexSelectionEvent(HexPosition position, boolean stillDragging) {
+			this.position = position;
 			this.stillDragging = stillDragging;
-			this.x = x;
-			this.y = y;
 		}
 	}
 
