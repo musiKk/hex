@@ -19,7 +19,7 @@ import com.github.musikk.hex.HexPanel.Metrics;
  */
 public class ScrollableHexPanel extends JPanel {
 
-	private static final int MAX_TICKS = 1000;
+	private static final int MAX_TICKS = Integer.MAX_VALUE;
 
 	private final HexPanel hexPanel;
 
