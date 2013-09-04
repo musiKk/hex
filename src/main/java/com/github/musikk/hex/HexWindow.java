@@ -28,13 +28,20 @@ import javax.swing.event.ChangeListener;
 public class HexWindow extends JFrame {
 
 	private final JTabbedPane tabbedPane = new JTabbedPane();
-	private final Map<JComponent, File> tabFileMapping = new HashMap<>();
+	private final Map<JComponent, TabInfo> tabFileMapping = new HashMap<>();
+
+	private final CloseTabAction closeTabAction = new CloseTabAction();
 
 	{
 		tabbedPane.addChangeListener(new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent e) {
-				setTitle("hex - " + tabFileMapping.get(tabbedPane.getSelectedComponent()).getAbsolutePath());
+				closeTabAction.setEnabled(tabbedPane.getTabCount() > 0);
+				if (tabbedPane.getTabCount() > 0) {
+					setTitle("hex - " + tabFileMapping.get(tabbedPane.getSelectedComponent()).file.getAbsolutePath());
+				} else {
+					setTitle("hex");
+				}
 			}
 		});
 	}
@@ -58,7 +65,8 @@ public class HexWindow extends JFrame {
 		fileMenu.setMnemonic('f');
 
 		fileMenu.add(new JMenuItem(new FileOpenAction()));
-		fileMenu.add(new JMenuItem(new CloseTabAction()));
+		closeTabAction.setEnabled(false);
+		fileMenu.add(new JMenuItem(closeTabAction));
 
 		fileMenu.addSeparator();
 		fileMenu.add(new JMenuItem(new QuitAction()));
@@ -83,11 +91,13 @@ public class HexWindow extends JFrame {
 
 	private void addNewTab(File file) {
 		try {
-			ScrollableHexPanel hexPanel = new ScrollableHexPanel(new FileDataProvider(file));
+			final FileDataProvider data = new FileDataProvider(file);
+
+			ScrollableHexPanel hexPanel = new ScrollableHexPanel(data);
 			hexPanel.setHoverMarker(new SimpleBorderMarker(Color.BLACK));
 			hexPanel.setSelectionMarker(new SimpleBorderMarker(Color.BLUE));
 
-			tabFileMapping.put(hexPanel, file);
+			tabFileMapping.put(hexPanel, new TabInfo(data, file));
 			tabbedPane.addTab(file.getName(), hexPanel);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -132,10 +142,6 @@ public class HexWindow extends JFrame {
 			putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_W, Event.CTRL_MASK));
 		}
 		@Override
-		public boolean isEnabled() {
-			return tabbedPane.getTabCount() > 0;
-		}
-		@Override
 		public void actionPerformed(ActionEvent e) {
 			int selectedIndex = tabbedPane.getSelectedIndex();
 			if (selectedIndex != -1) {
@@ -166,6 +172,15 @@ public class HexWindow extends JFrame {
 		public void actionPerformed(ActionEvent e) {
 			int newIndex = tabbedPane.getSelectedIndex() + (cycleRight ? 1 : -1);
 			tabbedPane.setSelectedIndex((newIndex + tabbedPane.getTabCount() % tabbedPane.getTabCount()) - 1);
+		}
+	}
+
+	private class TabInfo {
+		final DataProvider data;
+		final File file;
+		public TabInfo(DataProvider data, File file) {
+			this.data = data;
+			this.file = file;
 		}
 	}
 
