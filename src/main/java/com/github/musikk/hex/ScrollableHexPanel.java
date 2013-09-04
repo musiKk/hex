@@ -4,6 +4,8 @@ import java.awt.Adjustable;
 import java.awt.BorderLayout;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
 
 import javax.swing.JPanel;
 import javax.swing.JScrollBar;
@@ -34,6 +36,17 @@ public class ScrollableHexPanel extends JPanel {
 	 */
 	private RangeMarker selectionMarker;
 
+	/**
+	 * The scroll bar that is used to scroll through the data.
+	 */
+	private final JScrollBar scrollbar;
+
+	/**
+	 * The listener that gets notified when the scrollbar's value changes, i.e.,
+	 * the user scrolls using the scrollbar.
+	 */
+	private AdjustmentListener scrollbarAdjustListener;
+
 	public ScrollableHexPanel(final DataProvider data) {
 		this.setLayout(new BorderLayout());
 
@@ -42,7 +55,7 @@ public class ScrollableHexPanel extends JPanel {
 		hexPanel.addHexSelectionListener(new HexMarkingListener());
 		this.add(hexPanel, BorderLayout.CENTER);
 
-		final JScrollBar scrollbar = new JScrollBar(JScrollBar.VERTICAL);
+		scrollbar = new JScrollBar(JScrollBar.VERTICAL);
 		scrollbar.setMinimum(0);
 		scrollbar.setMaximum(0); // gets correct value in the listener
 		scrollbar.setValue(0);
@@ -63,18 +76,49 @@ public class ScrollableHexPanel extends JPanel {
 			}
 		});
 
-		scrollbar.addAdjustmentListener(new AdjustmentListener() {
-			@Override
-			public void adjustmentValueChanged(AdjustmentEvent e) {
-				Adjustable adj = e.getAdjustable();
-				Metrics metrics = hexPanel.getMetrics();
+		scrollbarAdjustListener = new ScrollbarAdjustListener();
+		scrollbar.addAdjustmentListener(scrollbarAdjustListener);
 
-				long newLine = (long) ((metrics.getLinesTotal() - metrics.getLines()) * (((float) adj.getValue()) / adj.getMaximum()));
-				hexPanel.setLineOffset(newLine);
+		hexPanel.addMouseWheelListener(new MouseWheelListener() {
+			@Override
+			public void mouseWheelMoved(MouseWheelEvent e) {
+				int rotation = e.getWheelRotation();
+				if (rotation == 0) {
+					return;
+				}
+				scrollLines(rotation);
 			}
 		});
 
 		this.add(scrollbar, BorderLayout.EAST);
+	}
+
+	private void scrollLines(int scrollLines) {
+		HexPanel.Metrics metrics = hexPanel.getMetrics();
+
+		long currentLine = metrics.getOffset() / metrics.getLineLength();
+		long newLine = currentLine + scrollLines;
+		if (scrollLines > 0) {
+			newLine = Math.min(newLine, metrics.getLinesTotal() - metrics.getLines());
+		} else {
+			newLine = Math.max(newLine, 0);
+		}
+		hexPanel.setLineOffset(newLine);
+
+		float fraction = ((float) newLine) / (metrics.getLinesTotal() - metrics.getLines());
+
+		/*
+		 * Remove the listener before setting the value. If the fractions of
+		 * multiple consecutive values result in the same value value again, the
+		 * user is unable to scroll further. Therefore the listener must not
+		 * intervene.
+		 *
+		 * In any case for huge files where the total number of lines is greater
+		 * than MAX_TICKS, the value here is only an approximation anyway.
+		 */
+		scrollbar.removeAdjustmentListener(scrollbarAdjustListener);
+		scrollbar.setValue((int) (fraction * scrollbar.getMaximum()));
+		scrollbar.addAdjustmentListener(scrollbarAdjustListener);
 	}
 
 	/**
@@ -109,6 +153,17 @@ public class ScrollableHexPanel extends JPanel {
 		if (newMarker != null) {
 			newMarker.invalidate();
 			hexPanel.addMarker(newMarker);
+		}
+	}
+
+	private class ScrollbarAdjustListener implements AdjustmentListener {
+		@Override
+		public void adjustmentValueChanged(AdjustmentEvent e) {
+			Adjustable adj = e.getAdjustable();
+			Metrics metrics = hexPanel.getMetrics();
+
+			long newLine = (long) ((metrics.getLinesTotal() - metrics.getLines()) * (((float) adj.getValue()) / adj.getMaximum()));
+			hexPanel.setLineOffset(newLine);
 		}
 	}
 
