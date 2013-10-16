@@ -4,6 +4,8 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.MouseInfo;
+import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.font.FontRenderContext;
@@ -176,6 +178,19 @@ public class HexPanel extends JPanel {
 
 		drawMarkers(g2);
 		drawHexLetters(g2);
+
+		fireEventsAfterPaint();
+	}
+
+	private void fireEventsAfterPaint() {
+		Point mousePos = MouseInfo.getPointerInfo().getLocation();
+		Point panelPos = getLocationOnScreen();
+		HexPosition currentlyHoveredPosition = getMetrics().positionFromCoordinates(
+				mousePos.x - panelPos.x, mousePos.y - panelPos.y);
+		if (currentlyHoveredPosition == null) {
+			return;
+		}
+		fireByteHovered(new HexSelectionEvent(currentlyHoveredPosition));
 	}
 
 	private void drawMarkers(Graphics2D g2) {
