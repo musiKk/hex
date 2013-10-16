@@ -34,6 +34,9 @@ public class HexWindow extends JFrame {
 
 	private final StatusBar statusBar = new StatusBar();
 
+	private final JTabbedPane tabsRight = new JTabbedPane();
+	private ByteInspector byteInspector;
+
 	private final CloseTabAction closeTabAction = new CloseTabAction();
 
 	{
@@ -52,16 +55,28 @@ public class HexWindow extends JFrame {
 
 	public HexWindow() {
 		super("hex");
+
 		setSize(new Dimension(800, 600));
 
 		setLayout(new BorderLayout());
 
+		addByteInspector(tabsRight);
+
 		add(tabbedPane, BorderLayout.CENTER);
+		add(tabsRight, BorderLayout.EAST);
 
 		addMenu();
 		addStatusBar();
 
 		setGlobalShortcuts();
+	}
+
+	private void addByteInspector(JTabbedPane tabs) {
+		JPanel inspectorPanel = new JPanel();
+
+		byteInspector = new ByteInspector();
+		inspectorPanel.add(byteInspector);
+		tabs.addTab("Inspector", inspectorPanel);
 	}
 
 	private void addStatusBar() {
@@ -110,6 +125,7 @@ public class HexWindow extends JFrame {
 				@Override
 				public void onHover(HexSelectionEvent e) {
 					statusBar.setPosition(e.position.column, e.position.totalRow);
+					byteInspector.setData(data, e.position.index);
 				}
 			});
 
