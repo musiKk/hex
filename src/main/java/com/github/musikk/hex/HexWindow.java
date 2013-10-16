@@ -17,9 +17,11 @@ import javax.swing.InputMap;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.KeyStroke;
 import javax.swing.event.ChangeEvent;
@@ -29,6 +31,8 @@ public class HexWindow extends JFrame {
 
 	private final JTabbedPane tabbedPane = new JTabbedPane();
 	private final Map<JComponent, TabInfo> tabFileMapping = new HashMap<>();
+
+	private final StatusBar statusBar = new StatusBar();
 
 	private final CloseTabAction closeTabAction = new CloseTabAction();
 
@@ -55,8 +59,13 @@ public class HexWindow extends JFrame {
 		add(tabbedPane, BorderLayout.CENTER);
 
 		addMenu();
+		addStatusBar();
 
 		setGlobalShortcuts();
+	}
+
+	private void addStatusBar() {
+		add(statusBar, BorderLayout.SOUTH);
 	}
 
 	private void addMenu() {
@@ -96,6 +105,13 @@ public class HexWindow extends JFrame {
 			ScrollableHexPanel hexPanel = new ScrollableHexPanel(data);
 			hexPanel.setHoverMarker(new SimpleBorderMarker(Color.BLACK));
 			hexPanel.setSelectionMarker(new SimpleBorderMarker(Color.BLUE));
+
+			hexPanel.getHexPanel().addHexSelectionListener(new HexSelectionAdapter() {
+				@Override
+				public void onHover(HexSelectionEvent e) {
+					statusBar.setPosition(e.position.column, e.position.totalRow);
+				}
+			});
 
 			tabFileMapping.put(hexPanel, new TabInfo(data, file));
 			tabbedPane.addTab(file.getName(), hexPanel);
@@ -172,6 +188,20 @@ public class HexWindow extends JFrame {
 		public void actionPerformed(ActionEvent e) {
 			int newIndex = tabbedPane.getSelectedIndex() + (cycleRight ? 1 : -1);
 			tabbedPane.setSelectedIndex((newIndex + tabbedPane.getTabCount() % tabbedPane.getTabCount()) - 1);
+		}
+	}
+
+	private class StatusBar extends JPanel {
+		private final JLabel positionLabel = new JLabel(" : ");
+		public StatusBar() {
+			setLayout(new BorderLayout());
+
+			positionLabel.setPreferredSize(new Dimension(50, positionLabel.getPreferredSize().height));
+			add(positionLabel, BorderLayout.EAST);
+		}
+
+		public void setPosition(int column, long row) {
+			positionLabel.setText(String.format("%d : %d", row, column));
 		}
 	}
 

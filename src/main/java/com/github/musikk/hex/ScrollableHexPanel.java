@@ -156,6 +156,10 @@ public class ScrollableHexPanel extends JPanel {
 		}
 	}
 
+	public HexPanel getHexPanel() {
+		return hexPanel;
+	}
+
 	private class ScrollbarAdjustListener implements AdjustmentListener {
 		@Override
 		public void adjustmentValueChanged(AdjustmentEvent e) {
