@@ -140,6 +140,12 @@ public class HexPanel extends JPanel {
 	private final MarkerUpdatedListener markerUpdatedListener;
 
 	/**
+	 * The last position that has been hovered. Used to avoid firing hover
+	 * events for the same spot over and over again.
+	 */
+	private HexPosition lastHoveredPosition = null;
+
+	/**
 	 * Creates a new {@code HexPanel} that displays the specified {@code data}.
 	 * The offset is initially zero.
 	 *
@@ -176,18 +182,25 @@ public class HexPanel extends JPanel {
 
 		calculateMetrics(g2);
 
+		/*
+		 * The hover event has to be fired before the markers are drawn.
+		 * Otherwise if a marker depends on the hover position, it is drawn in
+		 * the wrong place initially and then corrected through the event.
+		 * Regardless, this creates one repaint more than theoretically
+		 * necessary.
+		 */
+		fireHoverAtMousePosition();
 		drawMarkers(g2);
 		drawHexLetters(g2);
-
-		fireEventsAfterPaint();
 	}
 
-	private void fireEventsAfterPaint() {
+	private void fireHoverAtMousePosition() {
 		Point mousePos = MouseInfo.getPointerInfo().getLocation();
 		Point panelPos = getLocationOnScreen();
 		HexPosition currentlyHoveredPosition = getMetrics().positionFromCoordinates(
 				mousePos.x - panelPos.x, mousePos.y - panelPos.y);
 		if (currentlyHoveredPosition == null) {
+			lastHoveredPosition = null;
 			return;
 		}
 		fireByteHovered(new HexSelectionEvent(currentlyHoveredPosition));
@@ -366,6 +379,10 @@ public class HexPanel extends JPanel {
 	}
 
 	private synchronized void fireByteHovered(HexSelectionListener.HexSelectionEvent e) {
+		if (e.position.equals(lastHoveredPosition)) {
+			return;
+		}
+		lastHoveredPosition = e.position;
 		for (HexSelectionListener l : hexSelectionListeners) {
 			l.onHover(e);
 		}
@@ -533,6 +550,8 @@ public class HexPanel extends JPanel {
 			HexSelectionEvent event = makeEvent(e.getX(), e.getY(), false);
 			if (event.position != null) {
 				fireByteHovered(event);
+			} else {
+				lastHoveredPosition = null;
 			}
 		}
 

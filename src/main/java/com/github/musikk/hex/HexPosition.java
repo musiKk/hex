@@ -49,4 +49,41 @@ class HexPosition {
 		return String.format("HexPosition: %d:%d[%d] [column: %d, row: %d/%d]",
 				x, y, index, column, row, totalRow);
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + column;
+		result = prime * result + (int) (index ^ (index >>> 32));
+		result = prime * result + row;
+		result = prime * result + (int) (totalRow ^ (totalRow >>> 32));
+		result = prime * result + x;
+		result = prime * result + y;
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		HexPosition other = (HexPosition) obj;
+		if (column != other.column)
+			return false;
+		if (index != other.index)
+			return false;
+		if (row != other.row)
+			return false;
+		if (totalRow != other.totalRow)
+			return false;
+		if (x != other.x)
+			return false;
+		if (y != other.y)
+			return false;
+		return true;
+	}
 }
